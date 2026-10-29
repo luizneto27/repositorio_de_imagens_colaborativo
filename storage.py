@@ -1,0 +1,1 @@
+# Salvar, localizar e recuperar imagens
