@@ -3,13 +3,13 @@ Sistema distribuído cliente-servidor com Sockets TCP para compartilhamento cola
 
 ## TECNOLOGIAS A SEREM USADAS: 
 
-socket: comunicacao TCP
-threading: atendimento simultaneo de clientes
-os e pathlib: Gerenciamento de arquivos e diretórios
-json: Organização de metadados
-hashlib: cálculo de hashes e verificação de integridade
-Pillow: geração de miniatura
-algum banco de dados
+* socket: comunicacao TCP
+* threading: atendimento simultaneo de clientes
+* os e pathlib: Gerenciamento de arquivos e diretórios
+* json: Organização de metadados
+* hashlib: cálculo de hashes e verificação de integridade
+* Pillow: geração de miniatura
+* algum banco de dados
 
 COMANDOS DO SISTEMA:
 
