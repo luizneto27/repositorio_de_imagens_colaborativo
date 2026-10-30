@@ -1,5 +1,4 @@
 # Registrar usuários, arquivos e histórico
-
 import sqlite3
 import hashlib
 import threading
@@ -18,7 +17,6 @@ def conectar():
 
 
 def agora():
-    # nesse formato ordenar como texto ja ordena por data
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
