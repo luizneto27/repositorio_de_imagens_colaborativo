@@ -85,3 +85,66 @@ def senha_confere(nome, senha):
     if linha is None:
         return False
     return linha[0] == hash_senha(senha)
+
+
+def registrar_imagem(id_img, nome, autor, tamanho, caminho, caminho_thumb):
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        cur.execute("INSERT INTO imagens (id, nome, autor, tamanho, data_envio, caminho, caminho_thumb) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (id_img, nome, autor, tamanho, agora(), caminho, caminho_thumb))
+        con.commit()
+        con.close()
+
+
+def imagem_existe(id_img):
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        cur.execute("SELECT id FROM imagens WHERE id = ?", (id_img,))
+        linha = cur.fetchone()
+        con.close()
+    return linha is not None
+
+
+def listar_imagens():
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        # essa ordem de colunas e a mesma da linha que o servidor manda no LIST
+        cur.execute("SELECT id, nome, autor, data_envio, tamanho FROM imagens ORDER BY data_envio DESC")
+        imagens = cur.fetchall()
+        con.close()
+    return imagens
+
+
+def buscar_imagem(chave):
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        # aceita id ou nome. se o nome repetir pega a mais recente
+        cur.execute("SELECT id, nome, caminho, caminho_thumb FROM imagens WHERE id = ? OR nome = ? ORDER BY data_envio DESC LIMIT 1",
+                    (chave, chave))
+        imagem = cur.fetchone()
+        con.close()
+    return imagem
+
+
+def registrar_acao(usuario, acao, imagem_id=""):
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        cur.execute("INSERT INTO historico (data, usuario, acao, imagem_id) VALUES (?, ?, ?, ?)",
+                    (agora(), usuario, acao, imagem_id))
+        con.commit()
+        con.close()
+
+
+def ultimas_acoes(qtd=20):
+    with trava:
+        con = conectar()
+        cur = con.cursor()
+        cur.execute("SELECT data, usuario, acao, imagem_id FROM historico ORDER BY id DESC LIMIT ?", (qtd,))
+        acoes = cur.fetchall()
+        con.close()
+    return acoes
