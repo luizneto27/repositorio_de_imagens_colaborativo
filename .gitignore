@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+repository.db
+uploads/*
+!uploads/README.md
+thumbnails/*
+!thumbnails/README.md
+downloads/
+.venv/
