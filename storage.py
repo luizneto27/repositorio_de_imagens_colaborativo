@@ -9,7 +9,9 @@ from PIL import Image
 
 PASTA = Path(__file__).resolve().parent
 PASTA_UPLOADS = PASTA / "uploads"
+PASTA_THUMBNAILS = PASTA / "thumbnails"
 TAMANHO_MAXIMO = 20 * 1024 * 1024
+TAMANHO_MINIATURA = (128, 128)
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
 
 
@@ -63,6 +65,32 @@ def gerar_id(conteudo):
     return hashlib.sha256(conteudo).hexdigest()[:12]
 
 
+def gerar_miniatura(conteudo, usuario, id_img):
+    """Cria uma miniatura JPEG de até 128x128 em thumbnails/<usuario>/.
+
+    A proporção da imagem é preservada. Imagens com transparência são convertidas
+    para RGB antes de salvar, pois JPEG não oferece suporte a canal alfa.
+    """
+    pasta_usuario = PASTA_THUMBNAILS / _limpar_usuario(usuario)
+    pasta_usuario.mkdir(parents=True, exist_ok=True)
+    caminho = pasta_usuario / (id_img + ".jpg")
+
+    criado = False
+    try:
+        with Image.open(io.BytesIO(bytes(conteudo))) as imagem:
+            imagem.thumbnail(TAMANHO_MINIATURA)
+            miniatura = imagem.convert("RGB")
+            with caminho.open("xb") as saida:
+                criado = True
+                miniatura.save(saida, format="JPEG")
+    except Exception:
+        if criado:
+            caminho.unlink(missing_ok=True)
+        raise
+
+    return str(caminho)
+
+
 def _limpar_usuario(usuario):
     if not isinstance(usuario, str):
         raise ValueError("usuário inválido")
@@ -76,8 +104,8 @@ def _limpar_usuario(usuario):
 def salvar_imagem(usuario, nome, conteudo):
     """Valida e grava uma imagem original em uploads/<usuario>/<id><extensão>.
 
-    Retorna (id, nome_original, tamanho, caminho). Rejeita arquivos inválidos,
-    maiores que 20 MiB e conteúdo já armazenado.
+    Retorna (id, nome_original, tamanho, caminho, caminho_thumb). Rejeita arquivos
+    inválidos, maiores que 20 MiB e conteúdo já armazenado.
     """
     usuario = _limpar_usuario(usuario)
     nome = limpar_nome(nome)
@@ -105,7 +133,14 @@ def salvar_imagem(usuario, nome, conteudo):
             saida.write(conteudo)
     except FileExistsError as erro:
         raise ValueError("esta imagem já foi enviada") from erro
-    return id_img, nome, len(conteudo), str(caminho)
+    try:
+        caminho_thumb = gerar_miniatura(conteudo, usuario, id_img)
+    except Exception:
+        # Não deixar o original registrado no disco se o upload não puder ser
+        # concluído também com a miniatura correspondente.
+        caminho.unlink(missing_ok=True)
+        raise
+    return id_img, nome, len(conteudo), str(caminho), caminho_thumb
 
 
 def ler_arquivo(caminho):
