@@ -1,38 +1,61 @@
-Sistema distribuído cliente-servidor com Sockets TCP para compartilhamento colaborativo de imagens. Permite upload, armazenamento, listagem, visualização por miniaturas e download, mantendo um histórico com informações sobre autoria, data de envio e tamanho dos arquivos.
+# Repositório colaborativo de imagens
 
+Aplicação cliente-servidor em Python que compartilha imagens por TCP. O servidor valida e armazena os arquivos, gera miniaturas JPEG de até 128 × 128 pixels e registra metadados e ações em SQLite.
 
-## TECNOLOGIAS A SEREM USADAS: 
+## Requisitos
 
-* socket: comunicacao TCP
-* threading: atendimento simultaneo de clientes
-* os e pathlib: Gerenciamento de arquivos e diretórios
-* json: Organização de metadados
-* hashlib: cálculo de hashes e verificação de integridade
-* Pillow: geração de miniatura
-* algum banco de dados
+- Python 3.10 ou superior
+- Pillow (instalado pelo `requirements.txt`)
 
-COMANDOS DO SISTEMA:
+## Instalação
 
-| Comando    | Função                     | Resposta esperada            |
-| ---------- | -------------------------- | ---------------------------- |
-| `UPLOAD`   | Enviar uma imagem          | Confirmação do armazenamento |
-| `LIST`     | Listar imagens disponíveis | Lista de metadados           |
-| `DOWNLOAD` | Baixar uma imagem original | Tamanho e bytes da imagem    |
-| `VIEW`     | Obter uma miniatura        | Tamanho e bytes da miniatura |
+Na pasta do projeto, crie e ative um ambiente virtual e instale as dependências:
 
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
 
-RESPONSABILIDADE DE CADA ARQUIVO: 
+No macOS ou Linux, ative o ambiente com `source .venv/bin/activate`.
 
-| Arquivo ou diretório | Responsabilidade                         |
-| -------------------- | ---------------------------------------- |
-| `server.py`          | Criar o servidor TCP e atender clientes  |
-| `client.py`          | Conectar ao servidor e executar comandos |
-| `protocol.py`        | Definir o formato das mensagens          |
-| `storage.py`         | Salvar, localizar e recuperar imagens    |
-| `database.py`        | Registrar usuários, arquivos e histórico |
-| `uploads/`           | Armazenar as imagens originais           |
-| `thumbnails/`        | Armazenar as miniaturas                  |
-| `repository.db`      | Guardar os metadados no SQLite           |
-| `README.md`          | Documentar a instalação e a utilização   |
+## Execução
 
+Abra um terminal para iniciar o servidor:
 
+```text
+python server.py
+```
+
+O servidor escuta na porta TCP 5000 em todas as interfaces. Em outro terminal, inicie o cliente:
+
+```text
+python client.py [host] [porta]
+```
+
+Sem argumentos, o cliente conecta a `127.0.0.1:5000`. Para conectar de outro computador, informe o endereço IP do servidor e permita conexões TCP nessa porta na rede/firewall.
+
+## Comandos do cliente
+
+- **Login**: cria a conta no primeiro acesso ou autentica uma conta existente. É opcional; sem login, as imagens ficam atribuídas a `anonimo`.
+- **UPLOAD**: envia uma imagem de até 20 MiB. Extensões aceitas: JPG, JPEG, PNG, GIF, BMP e WebP.
+- **LIST**: lista ID, nome original, autor, data e tamanho.
+- **DOWNLOAD**: salva o original na pasta `downloads/`.
+- **VIEW**: salva e tenta abrir a miniatura JPEG na pasta `downloads/`.
+- **HIST**: exibe as 20 ações mais recentes.
+
+DOWNLOAD e VIEW aceitam ID ou nome; se um nome estiver repetido, é escolhida a imagem mais recente. O cliente e o servidor usam linhas UTF-8 terminadas em `\n`, com campos separados por `|`; transferências binárias informam o tamanho antes dos bytes.
+
+## Arquivos e dados
+
+- `server.py`: servidor TCP e atendimento concorrente
+- `client.py`: menu de terminal
+- `protocol.py`: mensagens de texto e transferências de tamanho conhecido
+- `storage.py`: validação, IDs SHA-256, originais e miniaturas
+- `database.py`: usuários, imagens e histórico em `repository.db`
+- `uploads/<usuario>/`: imagens originais
+- `thumbnails/<usuario>/`: miniaturas JPEG
+
+O ID usa os 12 primeiros caracteres hexadecimais do SHA-256 do conteúdo e também permite detectar imagens repetidas. Não há verificação de hash fim a fim da transferência. As senhas são armazenadas como SHA-256 sem salt, uma simplificação acadêmica que não deve ser usada como modelo para autenticação em produção.
+
+O banco e os arquivos enviados são criados durante a execução e ignorados pelo Git. Para testar sem misturar dados, use uma cópia temporária do projeto ou remova `repository.db`, `uploads/` e `thumbnails/` com o servidor parado.

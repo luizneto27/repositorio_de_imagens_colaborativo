@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+import threading
 from pathlib import Path
 
 from PIL import Image
@@ -13,6 +14,7 @@ PASTA_THUMBNAILS = PASTA / "thumbnails"
 TAMANHO_MAXIMO = 20 * 1024 * 1024
 TAMANHO_MINIATURA = (128, 128)
 EXTENSOES_VALIDAS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
+_trava_salvamento = threading.Lock()
 
 
 def limpar_nome(nome):
@@ -125,14 +127,16 @@ def salvar_imagem(usuario, nome, conteudo):
     caminho = pasta_usuario / (id_img + Path(nome).suffix.lower())
     # O identificador é global no banco; bloquear duplicatas também entre usuários
     # e extensões diferentes evita colisão com a chave primária de imagens.
-    if any(PASTA_UPLOADS.glob(f"*/{id_img}.*")):
-        raise ValueError("esta imagem já foi enviada")
-    try:
-        # Modo exclusivo: uma imagem repetida não sobrescreve o arquivo existente.
-        with caminho.open("xb") as saida:
-            saida.write(conteudo)
-    except FileExistsError as erro:
-        raise ValueError("esta imagem já foi enviada") from erro
+    # A busca e a criação precisam ser serializadas: IDs iguais com extensões
+    # ou usuários diferentes poderiam passar pela busca ao mesmo tempo.
+    with _trava_salvamento:
+        if any(PASTA_UPLOADS.glob(f"*/{id_img}.*")):
+            raise ValueError("esta imagem já foi enviada")
+        try:
+            with caminho.open("xb") as saida:
+                saida.write(conteudo)
+        except FileExistsError as erro:
+            raise ValueError("esta imagem já foi enviada") from erro
     try:
         caminho_thumb = gerar_miniatura(conteudo, usuario, id_img)
     except Exception:

@@ -142,7 +142,10 @@ def cmd_baixar(conn, partes, usuario, miniatura):
         erro(conn, "arquivo nao encontrado no disco")
         return
 
-    ok(conn, len(dados), nome)
+    # VIEW sempre entrega JPEG; informar uma extensão .jpg mantém nome e
+    # conteúdo coerentes no arquivo salvo pelo cliente.
+    nome_envio = id_img + ".jpg" if miniatura else nome
+    ok(conn, len(dados), nome_envio)
     protocol.enviar_arquivo(conn, dados)
     database.registrar_acao(usuario, acao, id_img)
 
